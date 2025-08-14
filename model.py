@@ -1,16 +1,11 @@
 !sudo apt-get install tesseract-ocr -y
-!sudo apt-get install poppler-utils -y
-!pip install pytesseract opencv-python-headless transformers pdf2image img2pdf gradio
-
+  
 import cv2
 import pytesseract
 import re
-from matplotlib import pyplot as plt
 from google.colab import files
 from pytesseract import Output
 from transformers import pipeline
-import pdf2image
-import img2pdf
 import io
 import os
 from PIL import Image
@@ -62,23 +57,7 @@ def process_image(img, filename):
             redaction_log.append(f"Word: {word}, Reason: {reason} (kept)")
     return img, redaction_log
 
-def process_pdf(pdf_path):
-    images = pdf2image.convert_from_path(pdf_path)
-    redacted_images = []
-    all_redaction_logs = []
-    for i, img in enumerate(images):
-        img_cv = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-        redacted_img, redaction_log = process_image(img_cv, f"page_{i+1}")
-        redacted_images.append(Image.fromarray(cv2.cvtColor(redacted_img, cv2.COLOR_BGR2RGB)))
-        all_redaction_logs.extend([f"Page {i+1}: {log}" for log in redaction_log])
-    output_pdf = "redacted_output.pdf"
-    with open(output_pdf, "wb") as f:
-        f.write(img2pdf.convert([img.tobytes() for img in redacted_images]))  # Fixed conversion
-    # Return first page as image for display
-    if redacted_images:
-        return redacted_images[0], "\n".join(all_redaction_logs)
-    return None, "No pages processed"
-
+ 
 def process_text(text_path):
     with open(text_path, 'r', encoding='utf-8') as f:
         text = f.read()
@@ -115,18 +94,10 @@ def process_file(file):
         cv2.imwrite(output_file, redacted_img)
         return redacted_img, "\n".join(redaction_log)
 
-    elif file_extension == '.pdf':
-        print(f"Processing PDF file: {file_path}")
-        redacted_img, redaction_log = process_pdf(file_path)
-        if redacted_img is not None:
-            return redacted_img, redaction_log
-        return None, redaction_log
+     
 
     elif file_extension == '.txt':
         print(f"Processing text file: {file_path}")
         output_file, redaction_log = process_text(file_path)
         with open(output_file, 'r', encoding='utf-8') as f:
             return f.read(), "\n".join(redaction_log)
-
-    else:
-        return None, "Unsupported file type. Please upload a .png, .jpg, .jpeg, .pdf, or .txt file."
